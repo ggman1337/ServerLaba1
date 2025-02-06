@@ -6,6 +6,8 @@ use App\Http\Controllers\NewController;
 Route::get('/', function () {
     return view('welcome');
 });
-Route::get('/info/server', [NewController::class, 'serverInfo']);
-Route::get('/info/client', [NewController::class, 'clientInfo']);
-Route::get('/info/database', [NewController::class, 'databaseInfo']);
+Route::group(['prefix' => 'info'], function () {
+    Route::get('/server', [NewController::class, 'serverInfo']);
+    Route::get('/client', [NewController::class, 'clientInfo']);
+    Route::get('/database', [NewController::class, 'databaseInfo']);
+});
