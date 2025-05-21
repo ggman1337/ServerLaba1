@@ -119,8 +119,25 @@ class AuthController extends Controller
         if (!$userId || !$jti) {
             return response()->json(['message' => 'Некорректный токен'], 401);
         }
-        UserTokenCacheService::revokeUserToken($userId, $jti);
-        UserTokenCacheService::revokeAllUserTokens($userId);
+        // Получаем все jti токенов перед отзывом
+        $tokens = UserTokenCacheService::getUserTokens($userId);
+        asort($tokens);
+        $jtiKeys = array_keys($tokens);
+        $index = array_search($jti, $jtiKeys, true);
+        if ($index !== false) {
+            // Отзываем access jti
+            UserTokenCacheService::revokeUserToken($userId, $jti);
+            // Определяем парный refresh jti: следующий или предыдущий в списке
+            $pairedRefreshJti = null;
+            if (isset($jtiKeys[$index + 1])) {
+                $pairedRefreshJti = $jtiKeys[$index + 1];
+            } elseif (isset($jtiKeys[$index - 1])) {
+                $pairedRefreshJti = $jtiKeys[$index - 1];
+            }
+            if ($pairedRefreshJti) {
+                UserTokenCacheService::revokeUserToken($userId, $pairedRefreshJti);
+            }
+        }
         return response()->json(['message' => 'Выход выполнен успешно']);
     }
 
@@ -203,7 +220,7 @@ class AuthController extends Controller
         // Генерируем новые токены
         $ttl = (int) (env('TOKEN_TTL_MINUTES', 60));
         $refreshTtl = (int) (env('REFRESH_TOKEN_TTL_MINUTES', 1440));
-        $maxTokens = (int) (env('MAX_USER_TOKENS', 5));
+        $maxTokens = (int) (env('MAX_USER_TOKENS', 6));
         $accessToken = TokenService::generateAccessToken($userId, $ttl);
         $newRefreshToken = TokenService::generateRefreshToken($userId, $refreshTtl);
         $accessJti = TokenService::extractJti($accessToken);
@@ -244,7 +261,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Необходимо указать старый и новый пароли'], 400);
         }
         // Проверяем старый пароль
-        if (!\Hash::check($oldPassword, $user->password)) {
+        if (!Hash::check($oldPassword, $user->password)) {
             return response()->json(['message' => 'Старый пароль неверен'], 422);
         }
         // Валидация нового пароля по требованиям: минимум 8 символов, цифра, заглавная и строчная буквы, спецсимвол
@@ -255,10 +272,10 @@ class AuthController extends Controller
             ], 422);
         }
         // Меняем пароль
-        $user->password = \Hash::make($newPassword);
+        $user->password = Hash::make($newPassword);
         $user->save();
         // Отзываем все токены пользователя
-        \App\Services\UserTokenCacheService::revokeAllUserTokens($userId);
+        UserTokenCacheService::revokeAllUserTokens($userId);
         return response()->json(['message' => 'Пароль успешно изменён. Все сессии завершены, выполните вход заново.']);
     }
 
