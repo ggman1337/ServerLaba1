@@ -3,8 +3,6 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
 class RegisterRequest extends FormRequest

@@ -7,14 +7,11 @@ use Illuminate\Http\Request;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\DTO\AuthUserDTO;
-use App\DTO\RegisterDTO;
 use App\DTO\LoginDTO;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 use App\Services\TokenService;
 use App\Services\UserTokenCacheService;
-use Illuminate\Support\Facades\Config;
 
 class AuthController extends Controller
 {
